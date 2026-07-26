@@ -1,0 +1,2225 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piano Player — piano.laby.net</title>
+<style>
+  :root{
+    --bg: #15120d;
+    --panel: #1e1a13;
+    --panel-raised: #262017;
+    --wood-line: #382f20;
+    --gold: #e3a93d;
+    --gold-dim: #8a6a2b;
+    --redstone: #c1440e;
+    --emerald: #4ade80;
+    --text: #f1ead9;
+    --text-dim: #a89a7c;
+    --pixel: 'Silkscreen', 'JetBrains Mono', monospace;
+    --mono: var(--pixel);
+    --sans: var(--pixel);
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at top, #241d12 0%, var(--bg) 55%);
+    color:var(--text);
+    font-family:var(--sans);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 16px;
+  }
+
+  .frame{
+    width:100%;
+    max-width:580px;
+    background:var(--panel);
+    border:3px solid #0d0b07;
+    border-radius:4px;
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,.7), inset 0 2px 0 rgba(255,255,255,.06), inset 0 -3px 0 rgba(0,0,0,.4);
+    overflow:hidden;
+  }
+
+  .frame-header{
+    padding:20px 24px 16px;
+    border-bottom:3px solid #0d0b07;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.16) 0 3px, transparent 3px 74px),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 34px, rgba(0,0,0,.1) 34px 37px),
+      linear-gradient(180deg, #5c4326, #40301c);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.3);
+  }
+  .frame-header h1{
+    font-family:var(--pixel);
+    font-size:20px;
+    margin:0;
+    font-weight:700;
+    letter-spacing:.5px;
+    color:var(--gold);
+    text-shadow: 2px 2px 0 rgba(0,0,0,.55);
+  }
+  .frame-header .sub{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--text-dim);
+    margin-top:3px;
+  }
+
+  .status-pill{
+    font-family:var(--mono);
+    font-size:12px;
+    padding:7px 12px;
+    border-radius:3px;
+    border:2px solid #0d0b07;
+    background:#171310;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+  }
+  .status-dot{width:7px;height:7px;border-radius:1px;background:var(--redstone);box-shadow:0 0 8px var(--redstone);}
+  .status-pill.ok .status-dot{background:var(--emerald);box-shadow:0 0 8px var(--emerald);}
+  .status-pill.wait .status-dot{background:var(--gold);box-shadow:0 0 8px var(--gold);animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .body{padding:24px 26px 28px;}
+
+  .profile{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 14px;
+    background:#171310;
+    border:2px solid #0d0b07;
+    border-radius:3px;
+    margin-bottom:20px;
+    display:none;
+  }
+  .profile img{width:36px;height:36px;border-radius:2px;image-rendering:pixelated;}
+  .header-head{
+    width:32px;height:32px;
+    border-radius:2px;
+    border:2px solid #0d0b07;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,.15);
+    image-rendering:pixelated;
+    flex:0 0 auto;
+  }
+  .profile .name{font-weight:600;font-size:14px;}
+  .profile .tag{font-family:var(--mono);font-size:11.5px;color:var(--emerald);}
+
+  label.field-label{
+    display:block;
+    font-family:var(--pixel);
+    font-size:12px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:10px;
+  }
+
+  select, input[type=range]{width:100%;}
+  select{
+    background:#171310;
+    color:var(--text);
+    border:2px solid #0d0b07;
+    border-radius:3px;
+    padding:13px 14px;
+    font-family:var(--sans);
+    font-size:15px;
+    margin-bottom:18px;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,.5), inset -1px -1px 0 rgba(255,255,255,.04);
+  }
+
+  .dropzone{
+    border:2px dashed #4a4030;
+    border-radius:3px;
+    padding:32px 18px;
+    text-align:center;
+    cursor:pointer;
+    background:#171310;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,.4);
+    transition:border-color .15s, background .15s;
+    margin-bottom:18px;
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color:var(--gold-dim);
+    background:#2b2417;
+  }
+  .dropzone .icon{font-size:30px;margin-bottom:8px;}
+  .dropzone .main{font-size:15px;color:var(--text);}
+  .dropzone .hint{font-family:var(--mono);font-size:12px;color:var(--text-dim);margin-top:5px;}
+  .dropzone .filename{font-family:var(--mono);font-size:13px;color:var(--gold);margin-top:9px;word-break:break-all;}
+
+  .bitmidi-panel{
+    background:#171310;
+    border:2px solid #0d0b07;
+    border-radius:3px;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,.35);
+    padding:12px;
+    margin-bottom:18px;
+  }
+  .bitmidi-search-row, .bitmidi-url-row{
+    display:flex;gap:8px;margin-bottom:8px;
+  }
+  .bitmidi-search-row input, .bitmidi-url-row input{
+    flex:1;margin-bottom:0;
+    padding:8px 10px;font-size:12px;
+  }
+  .bitmidi-search-row button, .bitmidi-url-row button{
+    flex:0 0 auto;padding:8px 12px;font-size:11.5px;
+  }
+  .bitmidi-results{
+    max-height:220px;
+    overflow-y:auto;
+    margin-bottom:8px;
+  }
+  .bitmidi-results:not(:empty){ margin-top:2px; }
+  .bitmidi-result-item{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:9px 10px;
+    border-radius:2px;
+    font-family:var(--mono);font-size:12px;
+    color:var(--text-dim);
+    cursor:pointer;
+    border-top:1px solid var(--wood-line);
+  }
+  .bitmidi-result-item:first-child{ border-top:none; }
+  .bitmidi-result-item:hover{ background:rgba(227,169,61,.08); color:var(--text); }
+  .bitmidi-result-item .bmr-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bitmidi-result-item .bmr-plays{ flex:0 0 auto; font-size:10.5px; color:var(--text-dim); }
+  .bitmidi-hint{
+    font-family:var(--mono);font-size:10.5px;color:var(--text-dim);
+    line-height:1.5;margin-top:2px;
+  }
+
+  .library-panel{
+    background:#171310;
+    border:2px solid #0d0b07;
+    border-radius:3px;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,.35);
+    padding:12px;
+    margin-bottom:18px;
+    max-height:220px;
+    overflow-y:auto;
+  }
+  .library-item{
+    display:flex;align-items:center;gap:8px;
+    padding:9px 10px;
+    border-radius:2px;
+    font-family:var(--mono);font-size:12px;
+    color:var(--text-dim);
+    cursor:pointer;
+    border-top:1px solid var(--wood-line);
+  }
+  .library-item:first-child{ border-top:none; }
+  .library-item:hover{ background:rgba(227,169,61,.08); color:var(--text); }
+  .library-item.active{ background:rgba(227,169,61,.16); color:var(--gold); }
+  .library-item .lib-icon{ flex:0 0 auto; }
+  input[type=file]{display:none;}
+
+  .controls{display:none;}
+  .controls.show{display:block;}
+
+  .voices-panel{
+    background:#171310;
+    border:2px solid #0d0b07;
+    border-radius:3px;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,.35);
+    padding:14px 14px 6px;
+    margin-bottom:16px;
+  }
+  .voice-row{
+    padding:10px 0;
+    border-top:1px solid var(--wood-line);
+  }
+  .voice-row:first-child{border-top:none;}
+  .voice-row .voice-label{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--text-dim);
+    margin-bottom:7px;
+  }
+  .voice-row .voice-label b{color:var(--text);font-weight:600;}
+  .voice-controls{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .voice-controls select{
+    width:auto;
+    flex:1;
+    min-width:0;
+    margin-bottom:0;
+    padding:6px 8px;
+    font-size:12px;
+  }
+  .voice-controls .preview-btn{
+    flex:0 0 auto;
+    padding:6px 9px;
+    font-size:12px;
+  }
+  .voice-toggle{
+    display:flex;align-items:center;gap:6px;
+    flex:0 0 auto;
+    font-size:11.5px;color:var(--text-dim);cursor:pointer;
+  }
+
+  /* Settings panel */
+  .settings-panel{
+    background:#171310;
+    border:2px solid #0d0b07;
+    border-radius:3px;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,.35);
+    padding:14px;
+    margin-bottom:16px;
+  }
+  .settings-title{
+    font-family:var(--pixel);
+    font-size:13px;letter-spacing:.03em;text-transform:uppercase;
+    color:var(--gold);margin-bottom:12px;
+  }
+  .toggle-row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    font-size:13.5px;color:var(--text);
+    padding:12px 2px;border-top:1px solid var(--wood-line);
+    cursor:pointer;
+  }
+  .toggle-row:first-of-type{border-top:none;}
+  .toggle-row span{
+    flex:1 1 auto;
+    min-width:0;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .toggle-row .switch{
+    flex:0 0 auto;
+    width:42px;
+    white-space:normal;
+    overflow:visible;
+  }
+
+  /* Schlichter Schalter: runder Punkt mit Strich (aus) / Kreis (an) als Symbol */
+  .switch{
+    position:relative;
+    flex:0 0 auto;
+    width:42px;height:24px;
+  }
+  .switch input{
+    position:absolute;inset:0;
+    opacity:0;
+    margin:0;
+    cursor:pointer;
+    z-index:1;
+  }
+  .switch .track{
+    position:absolute;inset:0;
+    background:#211d16;
+    border:1.5px solid #0d0b07;
+    border-radius:5px;
+    box-shadow: inset 1px 1px 3px rgba(0,0,0,.5);
+    transition:background .12s ease;
+  }
+  .switch .thumb{
+    position:absolute;top:2px;left:2px;
+    width:18px;height:18px;
+    background:#8f8368;
+    border:1.5px solid #0d0b07;
+    border-radius:50%;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,.3), inset -1px -1px 0 rgba(0,0,0,.35);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .12s ease, background .12s ease;
+  }
+  .switch .thumb::after{
+    content:'';
+    width:2px;height:9px;
+    background:#0d0b07;
+    border-radius:1px;
+  }
+  .switch input:checked ~ .track{ background:#2f6b34; }
+  .switch input:checked ~ .thumb{
+    transform:translateX(18px);
+    background:#eafbe0;
+  }
+  .switch input:checked ~ .thumb::after{
+    width:8px;height:8px;
+    border-radius:50%;
+    background:transparent;
+    border:2px solid #1e4620;
+  }
+  .switch input:focus-visible ~ .track{ box-shadow: inset 1px 1px 3px rgba(0,0,0,.5), 0 0 0 3px rgba(227,169,61,.4); }
+
+  /* Kompakte Schalter-Variante, z.B. pro Stimme in der Mehrstimmen-Liste */
+  .switch.switch-sm{ width:34px; height:20px; }
+  .switch.switch-sm .thumb{ width:15px; height:15px; top:1.5px; left:1.5px; }
+  .switch.switch-sm .thumb::after{ width:1.5px; height:7px; }
+  .switch.switch-sm input:checked ~ .thumb{ transform:translateX(14px); }
+  .switch.switch-sm input:checked ~ .thumb::after{ width:6px; height:6px; border-width:1.5px; }
+
+  /* Loading spinner */
+  .loading-spinner{
+    width:22px;height:22px;border-radius:50%;
+    border:2.5px solid var(--wood-line);
+    border-top-color:var(--gold);
+    margin:10px auto 0;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .frame{position:relative;z-index:1;}
+
+  /* Virtuelles Klavier */
+  .piano-section{ margin-top:6px; }
+  .piano-scroll-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-top:6px;
+  }
+  .piano-nudge{
+    flex:0 0 auto;
+    padding:0;
+    width:34px;height:170px;
+    font-size:14px;
+  }
+  .piano-scroll{
+    flex:1 1 auto;
+    min-width:0;
+    overflow-x:auto;
+    overflow-y:hidden;
+    border-radius:3px;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-color: var(--gold-dim) #171310;
+    scrollbar-width: thin;
+  }
+  .piano-scroll::-webkit-scrollbar{ height:10px; }
+  .piano-scroll::-webkit-scrollbar-track{ background:#171310; }
+  .piano-scroll::-webkit-scrollbar-thumb{ background:var(--gold-dim); border-radius:4px; }
+
+  .piano-keys-container{
+    position:relative;
+    height:170px;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  .white-keys-container{ display:flex; height:100%; }
+  .black-keys-container{ position:absolute; top:0; left:0; height:60%; pointer-events:none; }
+
+  .piano-key{
+    cursor:pointer;
+    transition: background .07s ease, transform .06s ease, box-shadow .1s ease;
+  }
+  .piano-key.white{
+    flex:none;
+    background:linear-gradient(180deg,#efe6cf,#ddd0ac);
+    border:1px solid #b8a778;
+    border-top:none;
+    border-radius:0 0 5px 5px;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    padding-bottom:8px;
+  }
+  .piano-key.white .piano-key-label{ color:#5a4e30; }
+  .piano-key.white.active{
+    background:linear-gradient(180deg,var(--gold),#c99a3a);
+    transform:translateY(2px);
+    box-shadow: inset 0 0 16px rgba(120,80,10,.5);
+  }
+  .piano-key.white.active .piano-key-label{ color:#3a2808; }
+  .piano-key.white.disabled{
+    background:linear-gradient(180deg,#2b2820,#211e18);
+    border-color:var(--wood-line);
+    cursor:not-allowed;
+  }
+  .piano-key.white.disabled .piano-key-label{ color:#54503f; }
+
+  .piano-key.black{
+    position:absolute;
+    height:100%;
+    background:linear-gradient(180deg,#2a2318,#120f0a);
+    border-radius:0 0 3px 3px;
+    z-index:2;
+    pointer-events:auto;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    padding-bottom:6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.4);
+  }
+  .piano-key.black .piano-key-label{ color:#9a8b60; }
+  .piano-key.black.active{
+    background:linear-gradient(180deg,var(--gold-dim),#4a3410);
+    transform:translateY(2px);
+    box-shadow: 0 0 14px rgba(227,169,61,.65);
+  }
+  .piano-key.black.disabled{
+    background:#1a1712;
+    opacity:.45;
+    cursor:not-allowed;
+  }
+
+  .piano-key-label{
+    font-family:var(--mono);
+    font-size:8px;
+    pointer-events:none;
+  }
+
+  /* Light theme */
+  body.light-theme{
+    --bg:#f3ede0;
+    --panel:#fffaf0;
+    --panel-raised:#f1e8d5;
+    --wood-line:#ddd0b0;
+    --gold:#b9812c;
+    --gold-dim:#8a6a2b;
+    --text:#2c2415;
+    --text-dim:#7a6a4a;
+  }
+
+  /* Noten-Partikel */
+  .note-particle{
+    position:absolute;
+    font-size:21px;
+    line-height:1;
+    pointer-events:none;
+    z-index:15;
+    text-shadow:0 0 10px currentColor;
+    animation: note-rise 1.9s ease-out forwards;
+    will-change: transform, opacity;
+  }
+  @keyframes note-rise{
+    0%{ transform: translate(-50%, 0) scale(0.75) rotate(-6deg); opacity:0; }
+    12%{ opacity:1; transform: translate(-50%, -16px) scale(1) rotate(2deg); }
+    100%{ transform: translate(-50%, -170px) scale(1.1) rotate(8deg); opacity:0; }
+  }
+
+  .row-between{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .row-between .val{font-family:var(--mono);font-size:12px;color:var(--gold);}
+
+  .slider-block{margin-bottom:18px;}
+  input[type=range]{
+    -webkit-appearance:none;
+    height:5px;
+    border-radius:100px;
+    background:var(--wood-line);
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:15px;height:15px;border-radius:50%;
+    background:var(--gold);
+    cursor:pointer;
+    box-shadow:0 0 0 3px rgba(227,169,61,.18);
+    margin-top:-5px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:15px;height:15px;border-radius:50%;
+    background:var(--gold);border:none;cursor:pointer;
+  }
+
+  .transport{display:flex;gap:12px;margin-bottom:16px;}
+  button{
+    font-family:var(--sans);
+    font-weight:700;
+    font-size:13.5px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    text-shadow: 1.5px 1.5px 0 rgba(0,0,0,.55);
+    border:2px solid #0d0b07;
+    border-radius:3px;
+    padding:13px 16px;
+    background:#4a4038;
+    color:var(--text);
+    cursor:pointer;
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,.16),
+      inset -2px -2px 0 rgba(0,0,0,.4);
+    transition: transform .05s, box-shadow .05s;
+  }
+  button:hover:not(:disabled){ background:#544940; }
+  button:active:not(:disabled){
+    transform:translateY(2px);
+    box-shadow:
+      inset -2px -2px 0 rgba(255,255,255,.1),
+      inset 2px 2px 0 rgba(0,0,0,.35);
+  }
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  button.primary{
+    flex:1;
+    background:linear-gradient(180deg,#e3a93d,#c98f2b);
+    color:#1c1608;
+    font-size:14.5px;
+    padding:15px 16px;
+    text-shadow: 1.5px 1.5px 0 rgba(0,0,0,.3);
+  }
+  button.primary:hover:not(:disabled){ background:linear-gradient(180deg,#edb64c,#d29a34); }
+  button.stop{
+    color:#ffb199;
+    background:#4a2013;
+    font-size:14.5px;
+    padding:15px 18px;
+  }
+  button.stop:hover:not(:disabled){ background:#5a2818; }
+
+  .progress-wrap{margin-bottom:6px;}
+  .progress-track{
+    height:12px;border-radius:2px;background:#171310;
+    border:2px solid #0d0b07;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,.5);
+    overflow:hidden;
+    cursor:pointer;
+  }
+  .progress-fill{
+    height:100%;width:0%;
+    background:linear-gradient(180deg,#8bef6f,#4fbf3a);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.3);
+    transition:width .08s linear;
+  }
+  .time-row{
+    display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:12px;color:var(--text-dim);
+    margin-top:6px;
+  }
+
+  .footnote{
+    margin-top:20px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-dim);
+    line-height:1.6;
+    border-top:1px solid var(--wood-line);
+    padding-top:14px;
+  }
+  .footnote b{color:var(--text);}
+
+  .credit{
+    text-align:center;
+    font-family:var(--pixel);
+    font-size:16px;
+    font-weight:700;
+    letter-spacing:.04em;
+    color:var(--gold);
+    margin-top:18px;
+    text-shadow:2px 2px 0 rgba(0,0,0,.55);
+  }
+
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:#171310;border:2px solid #0d0b07;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,.08);
+    padding:10px 16px;border-radius:3px;font-size:12.5px;
+    opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+
+  /* Rainbow Mode */
+  .frame{
+    filter: hue-rotate(var(--rainbow-hue, 0deg));
+    transition: filter 3.5s ease;
+  }
+  body.rainbow-active .frame{
+    animation: rainbow-shake 16s ease-in-out infinite;
+  }
+  @keyframes rainbow-shake{
+    0%,100%{ transform: rotate(0deg); }
+    25%{ transform: rotate(0.25deg); }
+    75%{ transform: rotate(-0.25deg); }
+  }
+  body.rainbow-active .frame-header{
+    background:
+      repeating-linear-gradient(135deg, rgba(227,169,61,.035) 0 2px, transparent 2px 14px),
+      linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet, red);
+    background-size: 100% 100%, 300% 100%;
+    animation: rainbow-slide 14s linear infinite;
+  }
+  @keyframes rainbow-slide{
+    0%{ background-position: 0 0, 0% 0; }
+    100%{ background-position: 0 0, 300% 0; }
+  }
+  #rainbowToggle.active{
+    border-color: transparent;
+    background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+    background-size: 300% 100%;
+    animation: rainbow-slide 10s linear infinite;
+    color: #111;
+  }
+  /* ---------- Song-Editor ---------- */
+  .editor-overlay{
+    position:fixed;inset:0;
+    z-index:500;
+    background:rgba(8,6,4,.82);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .editor-modal{
+    width:100%;max-width:1100px;
+    max-height:90vh;
+    background:var(--panel);
+    border:3px solid #0d0b07;
+    border-radius:4px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.7);
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+  .editor-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;
+    background:linear-gradient(180deg,#5c4326,#40301c);
+    border-bottom:3px solid #0d0b07;
+  }
+  .editor-title{
+    font-family:var(--pixel);
+    font-size:16px;color:var(--gold);
+    text-shadow:2px 2px 0 rgba(0,0,0,.5);
+  }
+  .editor-close{
+    padding:6px 11px;font-size:14px;
+  }
+  .editor-toolbar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:14px;
+    padding:14px 18px;
+    border-bottom:2px solid var(--wood-line);
+  }
+  .editor-tempo{
+    display:flex;align-items:center;gap:8px;
+    font-size:11.5px;color:var(--text-dim);
+  }
+  .editor-tempo input{ width:110px; margin-bottom:0; }
+  .editor-transport{ display:flex;gap:8px;margin-left:auto; }
+  .editor-transport button{ padding:9px 14px;font-size:12.5px; }
+
+  .editor-tracks{
+    overflow-y:auto;
+    padding:10px 14px;
+    flex:1;
+  }
+  .editor-track{
+    background:#171310;
+    border:2px solid #0d0b07;
+    border-radius:3px;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,.35);
+    padding:6px 8px;
+    margin-bottom:5px;
+  }
+  .editor-track-head{
+    display:flex;align-items:center;gap:6px;
+    margin-bottom:4px;
+  }
+  .editor-track-head select{
+    width:auto;margin-bottom:0;
+    padding:3px 6px;font-size:10.5px;
+  }
+  .editor-track-head .editor-instrument-select{ flex:1.4; }
+  .editor-track-head .editor-note-select{ flex:1; }
+  .editor-grid{
+    display:grid;
+    grid-template-columns: repeat(50, 1fr);
+    gap:1px;
+  }
+  .editor-grid-row{
+    display:contents;
+  }
+  .editor-cell{
+    aspect-ratio:1;
+    background:#241f17;
+    border:1px solid #0d0b07;
+    border-radius:1px;
+    cursor:pointer;
+    min-height:8px;
+  }
+  .editor-cell:hover{ background:#332a1c; }
+  .editor-cell.on{
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAIAAAAn5KxJAAABX0lEQVR4nO1ZsQrCMBBV6eAoIkgVhLrp6Ki74O7iP/oF7jo6OloQrAhFHB0dxPACOU3pRXtwb7oer+njOC4vaX20WNXeaPUTEzc7cc2FR35x5ik+BVwH38X8/ZyauFFo9T9ChXIjovrysFmbeDxfmvi43zrzFN9nneFk9jUvpqIqlBuRT1+m+53zZcyH4KM2MRVVodyI8MFn/mE/JZMpCx/npdtJCKqoCuVGhP7vckqdJKrPfOalDx+/Gw8SJ0dMRVUoN6y9PoG4zLzEPivKVz/6K4gRas1R6jzENS+L8vVcHxJihNapuyeffqXmX5l5ifs+9rGYiqpQblh3T1XzozjjxVRUhXLD8qN4C4/n6zL+Uv1oVSFGKOlHqf0XQfUZF1/9aEiIEWrdj7a7PROT/Qp8L39ZkH/MMxOjDxFTURXKDevMdLtmH6gvUP8tQ/B1joaEGKFWj1YZYiqqQrnxBKWQ5pyV5EzwAAAAAElFTkSuQmCC);
+    background-size: cover;
+    background-repeat: no-repeat;
+    filter: hue-rotate(var(--cell-hue-rotate, 0deg)) saturate(1.5) brightness(1.05);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.4);
+  }
+  .editor-cell.beat-start{ border-left:2px solid #544631; }
+  .editor-cell.step-active{ outline:1.5px solid var(--emerald); outline-offset:-1.5px; }
+
+  .editor-hint{
+    padding:10px 18px 14px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-dim);
+    border-top:1px solid var(--wood-line);
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <div class="frame-header">
+    <div>
+      <h1 id="titleText">🎹 Piano Player</h1>
+      <div class="sub" id="subText">piano.laby.net · lokaler Client</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="langToggleBtn" title="Language / Sprache" style="padding:9px 14px;font-size:14px;font-weight:700;">🇩🇪 DE</button>
+      <button id="settingsToggleBtn" title="Einstellungen" data-i18n-title="settingsToggleBtn_title" style="width:42px;padding:9px 0;font-size:17px;">⚙️</button>
+      <button id="editorToggleBtn" title="Song-Editor" data-i18n-title="editorToggleBtn_title" style="width:42px;padding:9px 0;font-size:17px;">✏️</button>
+      <button id="rainbowToggle" title="Random Rainbow Mode" data-i18n-title="rainbowToggle_title" style="width:42px;padding:9px 0;font-size:17px;">🌈</button>
+      <img id="headerPlayerHead" class="header-head" src="" alt="" style="display:none;">
+      <div class="status-pill wait" id="statusPill">
+        <div class="status-dot"></div>
+        <span id="statusText">Verbinde …</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="profile" id="profile">
+      <img id="playerHead" src="" alt="">
+      <div>
+        <div class="name" id="playerName">—</div>
+        <div class="tag">verbunden</div>
+      </div>
+    </div>
+
+    <div class="voices-panel" id="voicesPanel" style="display:none;">
+      <label class="toggle-row" style="border-top:none;padding-top:0;margin-bottom:6px;" title="Eine Stimme je erkanntem MIDI-Kanal" data-i18n-title="multiInstrumentRow_title">
+        <span id="multiInstrumentLabel">Mehrere Instrumente nutzen</span>
+        <span class="switch">
+          <input type="checkbox" id="multiInstrumentCheck" checked>
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </span>
+      </label>
+      <div id="voicesList"></div>
+    </div>
+
+    <label class="field-label" id="instrumentLabel">Instrument</label>
+    <select id="instrumentSelect">
+      <option value="harp">Harp</option>
+      <option value="banjo">Banjo</option>
+      <option value="bass_attack">Bass Attack</option>
+      <option value="bass">Bass</option>
+      <option value="bass_drum">Bass Drum</option>
+      <option value="bell">Bell</option>
+      <option value="bit">Bit</option>
+      <option value="cow_bell">Cow Bell</option>
+      <option value="didgeridoo">Didgeridoo</option>
+      <option value="flute">Flute</option>
+      <option value="guitar">Guitar</option>
+      <option value="hat">Hat</option>
+      <option value="ice_chime">Ice Chime</option>
+      <option value="iron_xylophone">Iron Xylophone</option>
+      <option value="pling">Pling</option>
+      <option value="snare">Snare</option>
+      <option value="xylobone">Xylobone</option>
+    </select>
+
+    <div class="settings-panel" id="settingsPanel" style="display:none;">
+      <div class="settings-title" id="settingsTitleText">⚙️ Einstellungen</div>
+
+      <label class="toggle-row">
+        <span id="particlesLabel">🎨 Schwebende Noten-Partikel</span>
+        <span class="switch">
+          <input type="checkbox" id="particlesCheck" checked>
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </span>
+      </label>
+      <label class="toggle-row">
+        <span id="loopLabel">🔁 Loop — Song wiederholen</span>
+        <span class="switch">
+          <input type="checkbox" id="loopCheck">
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </span>
+      </label>
+      <label class="toggle-row">
+        <span id="loadingLabel">⏳ Ladeanzeige bei großen Dateien</span>
+        <span class="switch">
+          <input type="checkbox" id="loadingIndicatorCheck" checked>
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </span>
+      </label>
+      <label class="toggle-row">
+        <span id="lightThemeLabel">☀️ Helles Theme</span>
+        <span class="switch">
+          <input type="checkbox" id="lightThemeCheck">
+          <span class="track"></span>
+          <span class="thumb"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="bitmidi-panel">
+      <div class="settings-title" id="midiFindTitleText">🔍 Songs auf BitMidi finden</div>
+      <div class="bitmidi-search-row">
+        <input type="text" id="bitmidiQuery" placeholder="z. B. Bohemian Rhapsody">
+        <button id="bitmidiSearchBtn" type="button">Suchen</button>
+      </div>
+      <div id="bitmidiResults" class="bitmidi-results"></div>
+      <div class="bitmidi-url-row">
+        <input type="text" id="bitmidiUrl" placeholder="Download-Link hier einfügen">
+        <button id="bitmidiLoadBtn" type="button">Laden</button>
+      </div>
+      <div class="bitmidi-hint" id="bitmidiHintText">Ergebnisse erscheinen direkt hier zum Anklicken. Alternativ kannst du unten auch einen Download-Link direkt einfügen.</div>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      <div class="icon" id="dropzoneIcon">🎵</div>
+      <div class="main" id="dropzoneMain" data-i18n="dropMain">MIDI-Datei(en) hierher ziehen oder klicken</div>
+      <div class="hint" data-i18n="dropHint">.mid / .midi</div>
+      <div class="filename" id="filename"></div>
+      <div class="loading-spinner" id="loadingSpinner" style="display:none;"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".mid,.midi" multiple>
+
+    <div class="library-panel" id="libraryPanel" style="display:none;">
+      <div class="settings-title" id="libraryTitleText">📚 Song-Bibliothek</div>
+      <div id="libraryList"></div>
+    </div>
+
+    <div class="controls" id="controls">
+
+      <div class="slider-block">
+        <div class="row-between">
+          <label class="field-label" style="margin-bottom:0;" id="speedLabelText">Geschwindigkeit</label>
+          <span class="val" id="speedVal">1.00×</span>
+        </div>
+        <input type="range" id="speedSlider" min="0.25" max="3" step="0.05" value="1">
+      </div>
+
+      <div class="slider-block" style="margin-bottom:14px;">
+        <label class="toggle-row" style="border-top:none;padding:2px;" title="Noten außerhalb der Klavierreichweite automatisch transponieren" data-i18n-title="transposeRow_title">
+          <span id="transposeLabel">Automatisch transponieren</span>
+          <span class="switch">
+            <input type="checkbox" id="transposeCheck" checked>
+            <span class="track"></span>
+            <span class="thumb"></span>
+          </span>
+        </label>
+      </div>
+
+      <div class="transport">
+        <button id="playBtn" class="primary">▶️ Abspielen</button>
+        <button id="stopBtn" class="stop">⏹️ Stop</button>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-track" id="progressTrack"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="time-row">
+          <span id="curTime">0:00</span>
+          <span id="totTime">0:00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="piano-section">
+      <label class="field-label" id="pianoLabel">🎹 Klavier (Klick/Ziehen/Tastatur QWERTY+ZXCV zum Spielen)</label>
+      <div class="piano-scroll-wrap">
+        <button type="button" id="pianoScrollLeft" class="piano-nudge" title="Nach links" data-i18n-title="pianoScrollLeft_title">◀</button>
+        <div id="virtualPiano" class="piano-scroll"></div>
+        <button type="button" id="pianoScrollRight" class="piano-nudge" title="Nach rechts" data-i18n-title="pianoScrollRight_title">▶</button>
+      </div>
+    </div>
+
+    <div class="footnote" id="footnoteText">
+      Setz dich in Minecraft auf den Stuhl vor dem Klavier — die Verbindung wird
+      automatisch hergestellt. Steht hier <b>„Nicht verbunden"</b>, bist du
+      (noch) nicht autorisiert.
+    </div>
+
+    <div class="credit">created by Priester_Horst</div>
+  </div>
+</div>
+
+<div class="editor-overlay" id="editorOverlay" style="display:none;">
+  <div class="editor-modal">
+    <div class="editor-header">
+      <span class="editor-title" id="editorTitleText">✏️ Song-Editor</span>
+      <button id="editorCloseBtn" type="button" class="editor-close">✕</button>
+    </div>
+
+    <div class="editor-toolbar">
+      <div class="editor-tempo">
+        <span id="editorTempoLabelText">Tempo</span>
+        <input type="range" id="editorTempo" min="60" max="220" step="5" value="120">
+        <span id="editorTempoVal">120 BPM</span>
+      </div>
+      <div class="editor-transport">
+        <button id="editorPlayBtn" type="button" class="primary">▶️ Abspielen</button>
+        <button id="editorStopBtn" type="button" class="stop">⏹️ Stop</button>
+      </div>
+    </div>
+
+    <div class="editor-tracks" id="editorTracks"></div>
+    <div class="editor-hint" id="editorHintText">Klick in die Zeile, um Töne zu setzen — jede der 10 Reihen hat ihr eigenes Instrument und ihre eigene Tonhöhe, alle spielen gleichzeitig.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WS_URL = 'wss://piano.laby.net/piano';
+const MC_MIN_NOTE = 54; // F#3
+const MC_MAX_NOTE = 78; // F#5
+
+let ws = null;
+let authorized = false;
+let keepAliveInterval = null;
+let reconnectTimeout = null;
+
+let midiData = null;   // {ticksPerBeat, notes:[{tick,note,velocity}], tempoMap:[{tick,msPerTick,timeMs}]}
+let totalDurationMs = 0;
+let isPlaying = false;
+
+function playBtnLabel(playing){
+  if (playing) return currentLang === 'en' ? '⏸️ Pause' : '⏸️ Pause';
+  return currentLang === 'en' ? '▶️ Play' : '▶️ Abspielen';
+}
+let playStartWallClock = 0;
+let playStartSongMs = 0;
+let playedIndex = 0;
+let playbackTimer = null;
+let speed = 1.0;
+const DEFAULT_VELOCITY = 100; // feste Anschlagstärke — in Minecraft ohnehin nicht hörbar unterscheidbar
+let voiceSettings = {}; // {channel: {instrument, muted}}
+
+const statusPill = document.getElementById('statusPill');
+const statusText = document.getElementById('statusText');
+const profileEl = document.getElementById('profile');
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const filenameEl = document.getElementById('filename');
+const controlsEl = document.getElementById('controls');
+const playBtn = document.getElementById('playBtn');
+const stopBtn = document.getElementById('stopBtn');
+const progressFill = document.getElementById('progressFill');
+const curTimeEl = document.getElementById('curTime');
+const totTimeEl = document.getElementById('totTime');
+const speedSlider = document.getElementById('speedSlider');
+const speedVal = document.getElementById('speedVal');
+const instrumentSelect = document.getElementById('instrumentSelect');
+const toastEl = document.getElementById('toast');
+
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastEl._t);
+  toastEl._t = setTimeout(()=>toastEl.classList.remove('show'), 2600);
+}
+
+let currentLang = 'de'; // früh deklariert, da setStatus/connect() das schon beim Start braucht
+
+const STATUS_TEXT = {
+  de: {
+    connecting: 'Verbinde …',
+    waitingAuth: 'Warte auf Autorisierung …',
+    notConnected: 'Nicht verbunden',
+    connected: 'Verbunden',
+    notConnectedNotAtPiano: 'Nicht verbunden (nicht am Klavier)'
+  },
+  en: {
+    connecting: 'Connecting …',
+    waitingAuth: 'Waiting for authorization …',
+    notConnected: 'Not connected',
+    connected: 'Connected',
+    notConnectedNotAtPiano: 'Not connected (not at the piano)'
+  }
+};
+let currentStatusKey = 'connecting';
+
+function setStatus(state, key){
+  currentStatusKey = key;
+  statusPill.className = 'status-pill ' + state;
+  statusText.textContent = STATUS_TEXT[currentLang][key];
+}
+
+// ---------- WebSocket ----------
+function connect(){
+  setStatus('wait', 'connecting');
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    setStatus('wait', 'waitingAuth');
+    startKeepAlive();
+  };
+  ws.onclose = () => {
+    authorized = false;
+    profileEl.style.display = 'none';
+    document.getElementById('headerPlayerHead').style.display = 'none';
+    stopKeepAlive();
+    setStatus('', 'notConnected');
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = setTimeout(connect, 2000);
+  };
+  ws.onerror = () => {};
+  ws.onmessage = (event) => {
+    let data;
+    try { data = JSON.parse(event.data); } catch { return; }
+    if (data.type === 'authorized') {
+      authorized = true;
+      setStatus('ok', 'connected');
+      document.getElementById('playerName').textContent = data.username || 'Unbekannt';
+      const headUrl = `https://laby.net/texture/profile/head/${data.uuid}.png?size=128`;
+      document.getElementById('playerHead').src = headUrl;
+      profileEl.style.display = 'flex';
+      const headerHead = document.getElementById('headerPlayerHead');
+      headerHead.src = headUrl;
+      headerHead.title = data.username || '';
+      headerHead.style.display = 'block';
+    } else if (data.type === 'unauthorized') {
+      authorized = false;
+      profileEl.style.display = 'none';
+      document.getElementById('headerPlayerHead').style.display = 'none';
+      setStatus('', 'notConnectedNotAtPiano');
+      stopPlayback();
+    }
+  };
+}
+
+function startKeepAlive(){
+  stopKeepAlive();
+  keepAliveInterval = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try { ws.send(JSON.stringify({type:'ping'})); } catch {}
+    }
+  }, 5000);
+}
+function stopKeepAlive(){
+  if (keepAliveInterval) { clearInterval(keepAliveInterval); keepAliveInterval = null; }
+}
+
+function sendNote(note, velocity, instrumentOverride){
+  // Visuals (Taste + Partikel) laufen immer — auch ohne Minecraft-Verbindung als stille Vorschau
+  spawnNoteParticle(note);
+  highlightKey(note);
+
+  if (!ws || ws.readyState !== WebSocket.OPEN || !authorized) return;
+  const instrument = instrumentOverride || instrumentSelect.value || 'harp';
+  ws.send(JSON.stringify({type:'note', instrument, note, velocity}));
+}
+
+// Schwebendes, farbiges Notensymbol — Farbton wandert je nach Tonhöhe durch den Regenbogen
+function spawnNoteParticle(note){
+  if (!document.getElementById('particlesCheck').checked) return;
+  const frame = document.querySelector('.frame');
+  if (!frame) return;
+
+  const clamped = Math.max(PIANO_DISPLAY_MIN, Math.min(PIANO_DISPLAY_MAX, note));
+  const t = (clamped - PIANO_DISPLAY_MIN) / (PIANO_DISPLAY_MAX - PIANO_DISPLAY_MIN); // 0 (tief) .. 1 (hoch)
+  const hue = Math.round(t * 300); // 0=rot … 300=violett, wie im Farbverlauf-Bild
+
+  const el = document.createElement('div');
+  el.className = 'note-particle';
+  el.textContent = Math.random() < 0.5 ? '♪' : '♫';
+  el.style.color = `hsl(${hue}, 78%, ${50 + Math.round(Math.random()*10)}%)`;
+
+  // Position exakt über der tatsächlich gedrückten/gespielten Taste starten
+  const key = virtualPianoKeys[clamped];
+  if (key){
+    const frameRect = frame.getBoundingClientRect();
+    const keyRect = key.getBoundingClientRect();
+    const leftPx = keyRect.left - frameRect.left + keyRect.width / 2;
+    const bottomPx = frameRect.bottom - keyRect.top;
+    el.style.left = leftPx + 'px';
+    el.style.bottom = bottomPx + 'px';
+  } else {
+    el.style.left = '50%';
+    el.style.bottom = '64px';
+  }
+
+  frame.appendChild(el);
+  setTimeout(() => el.remove(), 1950);
+}
+
+// Grobe Zuordnung General-MIDI-Programm -> Note-Block-Instrument (Näherung)
+function gmProgramToInstrument(program, isDrumChannel){
+  if (isDrumChannel) return 'snare';
+  if (program == null) return 'harp';
+  if (program <= 7) return 'harp';          // Piano
+  if (program <= 15) return 'bell';         // Chromatic Percussion
+  if (program <= 23) return 'pling';        // Organ
+  if (program <= 31) return 'guitar';       // Guitar
+  if (program <= 39) return 'bass';         // Bass
+  if (program <= 47) return 'iron_xylophone'; // Strings
+  if (program <= 55) return 'bell';         // Ensemble
+  if (program <= 63) return 'didgeridoo';   // Brass
+  if (program <= 71) return 'flute';        // Reed
+  if (program <= 79) return 'flute';        // Pipe
+  if (program <= 87) return 'bit';          // Synth Lead
+  if (program <= 95) return 'pling';        // Synth Pad
+  if (program <= 103) return 'ice_chime';   // Synth Effects
+  if (program <= 111) return 'banjo';       // Ethnic
+  if (program <= 119) return 'cow_bell';    // Percussive
+  return 'hat';                              // Sound Effects
+}
+
+// ---------- MIDI parsing ----------
+function readVarLen(view, offset){
+  let value = 0, byte;
+  do {
+    byte = view.getUint8(offset++);
+    value = (value << 7) | (byte & 0x7F);
+  } while (byte & 0x80);
+  return {value, offset};
+}
+
+function parseMidiFile(buffer){
+  const view = new DataView(buffer);
+  let offset = 0;
+
+  const readStr = (n) => {
+    let s = '';
+    for (let i=0;i<n;i++) s += String.fromCharCode(view.getUint8(offset++));
+    return s;
+  };
+
+  if (readStr(4) !== 'MThd') throw new Error('Keine gültige MIDI-Datei (MThd fehlt)');
+  offset += 4; // header length
+  offset += 2; // format
+  const trackCount = view.getUint16(offset); offset += 2;
+  const timeDivision = view.getUint16(offset); offset += 2;
+  const ticksPerBeat = timeDivision & 0x7FFF;
+
+  const rawTracks = [];
+
+  for (let t=0; t<trackCount; t++){
+    if (readStr(4) !== 'MTrk') throw new Error('Ungültiger Track-Header');
+    const trackLength = view.getUint32(offset); offset += 4;
+    const trackEnd = offset + trackLength;
+
+    let currentTick = 0;
+    let lastStatus = 0;
+    const events = [];
+
+    while (offset < trackEnd){
+      const delta = readVarLen(view, offset);
+      offset = delta.offset;
+      currentTick += delta.value;
+
+      let status = view.getUint8(offset);
+      if (status < 0x80){
+        status = lastStatus;
+      } else {
+        offset++;
+        lastStatus = status;
+      }
+
+      const eventType = status & 0xF0;
+      const channel = status & 0x0F;
+
+      if (eventType === 0x80 || eventType === 0x90){
+        const note = view.getUint8(offset++);
+        const velocity = view.getUint8(offset++);
+        events.push({
+          tick: currentTick,
+          type: (eventType === 0x90 && velocity > 0) ? 'noteOn' : 'noteOff',
+          note, velocity, channel, track: t
+        });
+      } else if (eventType === 0xC0){
+        const program = view.getUint8(offset++);
+        events.push({tick: currentTick, type:'programChange', channel, program, track: t});
+      } else if (eventType === 0xA0 || eventType === 0xB0 || eventType === 0xE0){
+        offset += 2;
+      } else if (eventType === 0xD0){
+        offset += 1;
+      } else if (status === 0xFF){
+        const metaType = view.getUint8(offset++);
+        const len = readVarLen(view, offset);
+        offset = len.offset;
+        if (metaType === 0x51 && len.value === 3){
+          const mspq = (view.getUint8(offset) << 16) | (view.getUint8(offset+1) << 8) | view.getUint8(offset+2);
+          events.push({tick: currentTick, type:'tempo', microsecondsPerBeat: mspq});
+        }
+        offset += len.value;
+      } else if (status === 0xF0 || status === 0xF7){
+        const len = readVarLen(view, offset);
+        offset = len.offset + len.value;
+      } else {
+        // Unknown/unsupported status byte — bail out of this track safely
+        break;
+      }
+    }
+    rawTracks.push(events);
+  }
+
+  // Build tempo map across all tracks (tempo is usually on track 0, but merge to be safe)
+  const tempoEvents = [{tick:0, microsecondsPerBeat:500000}]; // default 120 BPM
+  rawTracks.forEach(track => {
+    track.forEach(e => {
+      if (e.type === 'tempo') tempoEvents.push({tick: e.tick, microsecondsPerBeat: e.microsecondsPerBeat});
+    });
+  });
+  tempoEvents.sort((a,b) => a.tick - b.tick);
+
+  // Precompute cumulative time boundaries
+  const boundaries = [];
+  let accTime = 0, prevTick = 0, prevTempo = 500000;
+  tempoEvents.forEach((te, i) => {
+    if (i > 0){
+      const msPerTick = (prevTempo / ticksPerBeat) / 1000;
+      accTime += (te.tick - prevTick) * msPerTick;
+    }
+    boundaries.push({tick: te.tick, timeMs: accTime, tempo: te.microsecondsPerBeat});
+    prevTick = te.tick;
+    prevTempo = te.microsecondsPerBeat;
+  });
+
+  function tickToMs(tick){
+    let seg = boundaries[0];
+    for (let i=0;i<boundaries.length;i++){
+      if (boundaries[i].tick <= tick) seg = boundaries[i]; else break;
+    }
+    const msPerTick = (seg.tempo / ticksPerBeat) / 1000;
+    return seg.timeMs + (tick - seg.tick) * msPerTick;
+  }
+
+  // Flatten note-on events with real time (Spur+Kanal pro Note merken)
+  const notes = [];
+  rawTracks.forEach(track => {
+    track.forEach(e => {
+      if (e.type === 'noteOn'){
+        notes.push({
+          timeMs: tickToMs(e.tick), note: e.note, velocity: e.velocity,
+          channel: e.channel, track: e.track, voiceKey: `${e.track}:${e.channel}`
+        });
+      }
+    });
+  });
+  notes.sort((a,b) => a.timeMs - b.timeMs);
+
+  const totalMs = notes.length ? notes[notes.length-1].timeMs : 0;
+
+  // Erstes Program-Change pro Stimme (Spur+Kanal) sammeln, zeitlich sortiert
+  const allProgramChanges = [];
+  rawTracks.forEach(track => {
+    track.forEach(e => { if (e.type === 'programChange') allProgramChanges.push(e); });
+  });
+  allProgramChanges.sort((a,b) => a.tick - b.tick);
+  const programByVoice = {};
+  allProgramChanges.forEach(e => {
+    const key = `${e.track}:${e.channel}`;
+    if (!(key in programByVoice)) programByVoice[key] = e.program;
+  });
+
+  // Stimmen-Zusammenfassung: eine Stimme = eine Kombination aus Spur (Track) und Kanal.
+  // Das erkennt sowohl Dateien, die Instrumente über den Kanal trennen (Format 0),
+  // als auch Dateien, die alles auf Kanal 1 lassen und stattdessen pro Spur trennen (häufig bei Format 1).
+  const noteCountByVoice = {};
+  notes.forEach(n => { noteCountByVoice[n.voiceKey] = (noteCountByVoice[n.voiceKey] || 0) + 1; });
+  const voices = Object.keys(noteCountByVoice).map(key => {
+    const [track, channel] = key.split(':').map(Number);
+    const isDrum = channel === 9; // MIDI-Kanal 10 (0-indiziert 9) ist die General-MIDI-Konvention für Schlagzeug
+    return {
+      voiceKey: key,
+      track, channel,
+      noteCount: noteCountByVoice[key],
+      program: programByVoice[key] ?? null,
+      isDrum,
+      suggestedInstrument: gmProgramToInstrument(programByVoice[key] ?? null, isDrum)
+    };
+  }).sort((a,b) => a.track - b.track || a.channel - b.channel);
+
+  return {ticksPerBeat, notes, totalMs, voices};
+}
+
+// ---------- Playback ----------
+function loadFile(file){
+  filenameEl.textContent = '';
+  const spinner = document.getElementById('loadingSpinner');
+  const showSpinner = document.getElementById('loadingIndicatorCheck').checked && file.size > 150000;
+  if (showSpinner) spinner.style.display = 'block';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    // Kurze Verzögerung, damit der Spinner sichtbar rendert, bevor das (synchrone) Parsen den Thread blockiert
+    setTimeout(() => {
+      try {
+        midiData = parseMidiFile(e.target.result);
+        if (!midiData.notes.length) throw new Error('Keine Noten in dieser Datei gefunden.');
+        totalDurationMs = midiData.totalMs;
+        filenameEl.textContent = '🎼 ' + file.name;
+        totTimeEl.textContent = formatTime(totalDurationMs / 1000);
+        curTimeEl.textContent = '0:00';
+        progressFill.style.width = '0%';
+        progressFill.dataset.songMs = 0;
+        controlsEl.classList.add('show');
+        playBtn.textContent = playBtnLabel(false);
+        renderVoices(midiData.voices);
+        const voiceInfo = midiData.voices.length > 1 ? `, ${midiData.voices.length} Stimmen erkannt` : '';
+        toast(`Geladen: ${midiData.notes.length} Noten, ${formatTime(totalDurationMs/1000)} Länge${voiceInfo}`);
+      } catch (err){
+        toast('Fehler: ' + err.message);
+        midiData = null;
+        controlsEl.classList.remove('show');
+      } finally {
+        spinner.style.display = 'none';
+      }
+    }, showSpinner ? 30 : 0);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderVoices(voices){
+  const panel = document.getElementById('voicesPanel');
+  const list = document.getElementById('voicesList');
+  list.innerHTML = '';
+  voiceSettings = {};
+
+  if (!voices || voices.length <= 1){
+    // Nur eine Stimme -> Panel nicht nötig, normales Instrument-Dropdown reicht
+    panel.style.display = 'none';
+    if (voices && voices.length === 1){
+      voiceSettings[voices[0].voiceKey] = {instrument: instrumentSelect.value, muted: false};
+    }
+    return;
+  }
+
+  panel.style.display = 'block';
+
+  const options = Array.from(instrumentSelect.options).map(o => `<option value="${o.value}">${o.textContent}</option>`).join('');
+
+  voices.forEach(v => {
+    voiceSettings[v.voiceKey] = {instrument: v.suggestedInstrument, muted: false};
+
+    const row = document.createElement('div');
+    row.className = 'voice-row';
+
+    const label = document.createElement('div');
+    label.className = 'voice-label';
+    const drumTag = v.isDrum ? ' · Schlagzeug' : '';
+    label.innerHTML = `<b>Spur ${v.track + 1} · Kanal ${v.channel + 1}</b>${drumTag} · ${v.noteCount} Noten`;
+
+    const controls = document.createElement('div');
+    controls.className = 'voice-controls';
+
+    const select = document.createElement('select');
+    select.innerHTML = options;
+    select.value = v.suggestedInstrument;
+    select.addEventListener('change', () => {
+      voiceSettings[v.voiceKey].instrument = select.value;
+    });
+
+    const previewBtn = document.createElement('button');
+    previewBtn.textContent = '🔊';
+    previewBtn.title = 'Kurz anhören';
+    previewBtn.type = 'button';
+    previewBtn.className = 'preview-btn';
+    previewBtn.addEventListener('click', () => {
+      // kleine Tonleiter mit dem aktuell gewählten Instrument der Stimme anspielen
+      // (läuft auch ohne Verbindung als stille Tasten-Vorschau)
+      const previewNotes = [60, 64, 67, 72].map(transposeToRange);
+      previewNotes.forEach((n, i) => {
+        setTimeout(() => sendNote(n, 100, select.value), i * 220);
+      });
+    });
+
+    // Eigener An/Aus-Schalter direkt an dieser Stimme (an = Stimme spielt mit)
+    const toggleLabel = document.createElement('label');
+    toggleLabel.className = 'voice-toggle';
+    const switchWrap = document.createElement('span');
+    switchWrap.className = 'switch switch-sm';
+    const activeCheck = document.createElement('input');
+    activeCheck.type = 'checkbox';
+    activeCheck.checked = true; // Standard: Stimme aktiv
+    activeCheck.addEventListener('change', () => {
+      voiceSettings[v.voiceKey].muted = !activeCheck.checked;
+    });
+    const track = document.createElement('span');
+    track.className = 'track';
+    const thumb = document.createElement('span');
+    thumb.className = 'thumb';
+    switchWrap.appendChild(activeCheck);
+    switchWrap.appendChild(track);
+    switchWrap.appendChild(thumb);
+    toggleLabel.appendChild(switchWrap);
+
+    controls.appendChild(select);
+    controls.appendChild(previewBtn);
+    controls.appendChild(toggleLabel);
+
+    row.appendChild(label);
+    row.appendChild(controls);
+    list.appendChild(row);
+  });
+}
+
+function formatTime(seconds){
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function transposeToRange(note){
+  while (note < MC_MIN_NOTE) note += 12;
+  while (note > MC_MAX_NOTE) note -= 12;
+  return note;
+}
+
+function startPlayback(){
+  if (!midiData) return;
+  isPlaying = true;
+  playBtn.textContent = playBtnLabel(true);
+  playStartWallClock = Date.now();
+  playStartSongMs = parseFloat(progressFill.dataset.songMs || 0);
+
+  playbackTimer = setInterval(() => {
+    const realElapsed = Date.now() - playStartWallClock;
+    const songMs = playStartSongMs + realElapsed * speed;
+
+    curTimeEl.textContent = formatTime(songMs / 1000);
+    const pct = Math.min(100, (songMs / totalDurationMs) * 100);
+    progressFill.style.width = pct + '%';
+    progressFill.dataset.songMs = songMs;
+
+    const multiMode = document.getElementById('multiInstrumentCheck').checked
+      && midiData.voices && midiData.voices.length > 1;
+
+    while (playedIndex < midiData.notes.length && midiData.notes[playedIndex].timeMs <= songMs){
+      const ev = midiData.notes[playedIndex];
+      let note = ev.note;
+      if (document.getElementById('transposeCheck').checked){
+        note = transposeToRange(note);
+      }
+      if (note >= 0 && note <= 127){
+        if (multiMode){
+          const vs = voiceSettings[ev.voiceKey];
+          if (!vs || !vs.muted){
+            sendNote(note, DEFAULT_VELOCITY, vs ? vs.instrument : undefined);
+          }
+        } else {
+          sendNote(note, DEFAULT_VELOCITY);
+        }
+      }
+      playedIndex++;
+    }
+
+    if (songMs >= totalDurationMs || playedIndex >= midiData.notes.length){
+      onSongEnd();
+    }
+  }, 15);
+}
+
+function pausePlayback(){
+  isPlaying = false;
+  playBtn.textContent = playBtnLabel(false);
+  if (playbackTimer){ clearInterval(playbackTimer); playbackTimer = null; }
+}
+
+function stopPlayback(){
+  pausePlayback();
+  playedIndex = 0;
+  progressFill.style.width = '0%';
+  progressFill.dataset.songMs = 0;
+  curTimeEl.textContent = '0:00';
+}
+
+// Wird nur aufgerufen, wenn ein Song von selbst zu Ende gespielt hat (nicht bei manuellem Stop)
+function onSongEnd(){
+  stopPlayback();
+  if (document.getElementById('loopCheck').checked){
+    setTimeout(requestPlay, 300);
+  }
+}
+
+function requestPlay(){
+  if (!midiData) return;
+  if (!authorized){
+    toast('Vorschau ohne Ton — nicht mit Minecraft verbunden.');
+  }
+  startPlayback();
+}
+
+// ---------- Spulen per Klick (immer aktiv) ----------
+document.getElementById('progressTrack').addEventListener('click', (e) => {
+  if (!midiData) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+  seekTo(pct * totalDurationMs);
+});
+
+function seekTo(ms){
+  playedIndex = midiData.notes.findIndex(n => n.timeMs >= ms);
+  if (playedIndex === -1) playedIndex = midiData.notes.length;
+  progressFill.dataset.songMs = ms;
+  progressFill.style.width = Math.min(100, (ms / totalDurationMs) * 100) + '%';
+  curTimeEl.textContent = formatTime(ms / 1000);
+  if (isPlaying){
+    playStartWallClock = Date.now();
+    playStartSongMs = ms;
+  }
+}
+
+let songLibrary = []; // Session-Bibliothek — nur im Browser-Speicher, wird nirgends fest eingebettet
+
+function handleFiles(fileList){
+  const files = Array.from(fileList);
+  if (!files.length) return;
+
+  files.forEach(f => {
+    if (!songLibrary.some(existing => existing.name === f.name && existing.size === f.size)){
+      songLibrary.push(f);
+    }
+  });
+
+  renderLibrary(files[0]);
+  loadFile(files[0]);
+}
+
+function renderLibrary(activeFile){
+  const panel = document.getElementById('libraryPanel');
+  const list = document.getElementById('libraryList');
+
+  if (songLibrary.length <= 1){
+    panel.style.display = 'none';
+    return;
+  }
+
+  panel.style.display = 'block';
+  list.innerHTML = '';
+  songLibrary.forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'library-item' + (activeFile && f.name === activeFile.name && f.size === activeFile.size ? ' active' : '');
+    item.innerHTML = `<span class="lib-icon">🎼</span><span>${f.name}</span>`;
+    item.addEventListener('click', () => {
+      renderLibrary(f);
+      loadFile(f);
+    });
+    list.appendChild(item);
+  });
+}
+
+playBtn.addEventListener('click', () => {
+  if (!midiData) return;
+  if (isPlaying){ pausePlayback(); return; }
+  requestPlay();
+});
+stopBtn.addEventListener('click', stopPlayback);
+
+speedSlider.addEventListener('input', () => {
+  speed = parseFloat(speedSlider.value);
+  speedVal.textContent = speed.toFixed(2) + '×';
+});
+
+// ---------- File input / drag&drop ----------
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', (e) => {
+  handleFiles(e.target.files);
+});
+['dragenter','dragover'].forEach(evt => {
+  dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt => {
+  dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('drag'); });
+});
+dropzone.addEventListener('drop', (e) => {
+  handleFiles(e.dataTransfer.files);
+});
+
+// ---------- BitMidi-Integration ----------
+document.getElementById('bitmidiSearchBtn').addEventListener('click', () => {
+  const q = document.getElementById('bitmidiQuery').value.trim();
+  if (!q) return;
+  searchBitmidiApi(q);
+});
+document.getElementById('bitmidiQuery').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('bitmidiSearchBtn').click();
+});
+
+// BitMidi hat eine öffentliche, CORS-freigegebene JSON-API (/api/midi/search) —
+// dadurch können Ergebnisse direkt hier angezeigt und Songs mit einem Klick geladen werden,
+// ganz ohne Umweg über einen neuen Tab oder manuelles Link-Kopieren.
+async function searchBitmidiApi(q){
+  const resultsEl = document.getElementById('bitmidiResults');
+  resultsEl.innerHTML = '';
+  toast('Suche auf BitMidi …');
+
+  try {
+    const res = await fetch('https://bitmidi.com/api/midi/search?q=' + encodeURIComponent(q) + '&pageSize=15', { mode: 'cors' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const results = (data.result && data.result.results) || [];
+
+    if (!results.length){
+      toast('Keine Treffer auf BitMidi.');
+      return;
+    }
+
+    results.forEach(song => {
+      const item = document.createElement('div');
+      item.className = 'bitmidi-result-item';
+      item.innerHTML = `<span class="bmr-name">🎼 ${song.name}</span><span class="bmr-plays">▶ ${song.plays || 0}</span>`;
+      item.addEventListener('click', () => loadBitmidiResult(song));
+      resultsEl.appendChild(item);
+    });
+  } catch (err) {
+    toast('Suche fehlgeschlagen — evtl. Netzwerkproblem. Alternativ oben auf bitmidi.com direkt suchen.');
+    window.open('https://bitmidi.com/search?q=' + encodeURIComponent(q), '_blank', 'noopener');
+  }
+}
+
+async function loadBitmidiResult(song){
+  toast('Lade „' + song.name + '" …');
+  try {
+    const res = await fetch('https://bitmidi.com' + song.downloadUrl, { mode: 'cors' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const blob = await res.blob();
+    const file = new File([blob], song.name.endsWith('.mid') ? song.name : song.name + '.mid', { type: 'audio/midi' });
+    document.getElementById('bitmidiResults').innerHTML = '';
+    document.getElementById('bitmidiQuery').value = '';
+    handleFiles([file]);
+  } catch (err) {
+    toast('Laden fehlgeschlagen — Link stattdessen unten manuell einfügen: bitmidi.com' + song.downloadUrl);
+  }
+}
+
+document.getElementById('bitmidiLoadBtn').addEventListener('click', () => loadFromBitmidiUrl());
+document.getElementById('bitmidiUrl').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') loadFromBitmidiUrl();
+});
+
+async function loadFromBitmidiUrl(){
+  const urlInput = document.getElementById('bitmidiUrl');
+  const url = urlInput.value.trim();
+  if (!url) return;
+
+  toast('Lade von BitMidi …');
+
+  // Erst direkt versuchen, dann über zwei öffentliche CORS-Proxys als Umweg —
+  // BitMidi selbst hat keine öffentliche API und blockiert Fremdseiten-Zugriffe (CORS)
+  const attempts = [
+    url,
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+    'https://corsproxy.io/?url=' + encodeURIComponent(url)
+  ];
+
+  for (const attemptUrl of attempts){
+    try {
+      const res = await fetch(attemptUrl, { mode: 'cors' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      if (blob.size < 20) throw new Error('Antwort zu klein, vermutlich Fehlerseite');
+      const name = url.split('/').pop() || 'bitmidi-song.mid';
+      const file = new File([blob], name, { type: 'audio/midi' });
+      urlInput.value = '';
+      handleFiles([file]);
+      return;
+    } catch (err) {
+      // nächsten Versuch probieren
+    }
+  }
+
+  toast('Direktes Laden nicht möglich — Datei stattdessen von BitMidi herunterladen und unten reinziehen.');
+}
+
+connect();
+
+// ---------- Random Rainbow Mode ----------
+let rainbowInterval = null;
+const rainbowToggle = document.getElementById('rainbowToggle');
+
+function randomHue(){
+  const hue = Math.floor(Math.random() * 360);
+  document.documentElement.style.setProperty('--rainbow-hue', hue + 'deg');
+}
+
+function startRainbow(){
+  document.body.classList.add('rainbow-active');
+  rainbowToggle.classList.add('active');
+  randomHue();
+  rainbowInterval = setInterval(randomHue, 4500 + Math.random() * 3000);
+}
+
+function stopRainbow(){
+  document.body.classList.remove('rainbow-active');
+  rainbowToggle.classList.remove('active');
+  if (rainbowInterval){ clearInterval(rainbowInterval); rainbowInterval = null; }
+  document.documentElement.style.setProperty('--rainbow-hue', '0deg');
+}
+
+rainbowToggle.addEventListener('click', () => {
+  if (rainbowInterval) stopRainbow();
+  else startRainbow();
+});
+
+// ---------- Settings panel toggle ----------
+document.getElementById('settingsToggleBtn').addEventListener('click', () => {
+  const panel = document.getElementById('settingsPanel');
+  panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
+});
+
+// ---------- Helles Theme ----------
+document.getElementById('lightThemeCheck').addEventListener('change', (e) => {
+  document.body.classList.toggle('light-theme', e.target.checked);
+});
+
+// ---------- Sprachumschaltung (DE / EN) ----------
+const I18N = {
+  de: {
+    titleText: '🎹 Piano Player',
+    subText: 'piano.laby.net · lokaler Client',
+    instrumentLabel: 'Instrument',
+    multiInstrumentLabel: 'Mehrere Instrumente nutzen',
+    settingsTitleText: '⚙️ Einstellungen',
+    particlesLabel: '🎨 Schwebende Noten-Partikel',
+    loopLabel: '🔁 Loop — Song wiederholen',
+    loadingLabel: '⏳ Ladeanzeige bei großen Dateien',
+    lightThemeLabel: '☀️ Helles Theme',
+    transposeLabel: 'Automatisch transponieren',
+    dropzoneMain: 'MIDI-Datei hierher ziehen oder klicken',
+    pianoLabel: '🎹 Klavier (Klick/Ziehen/Tastatur QWERTY+ZXCV zum Spielen)',
+    midiFindTitleText: '🔍 Songs auf BitMidi finden',
+    bitmidiQuery_placeholder: 'z. B. Bohemian Rhapsody',
+    bitmidiSearchBtn: 'Suchen',
+    bitmidiUrl_placeholder: 'Download-Link hier einfügen',
+    bitmidiLoadBtn: 'Laden',
+    bitmidiHintText: 'Ergebnisse erscheinen direkt hier zum Anklicken. Alternativ kannst du unten auch einen Download-Link direkt einfügen.',
+    libraryTitleText: '📚 Song-Bibliothek',
+    editorTitleText: '✏️ Song-Editor',
+    editorHintText: 'Klick in die Zeile, um Töne zu setzen — jede der 10 Reihen hat ihr eigenes Instrument und ihre eigene Tonhöhe, alle spielen gleichzeitig.',
+    speedLabelText: 'Geschwindigkeit',
+    editorTempoLabelText: 'Tempo',
+    playBtn: '▶️ Abspielen',
+    stopBtn: '⏹️ Stop',
+    editorPlayBtn: '▶️ Abspielen',
+    editorStopBtn: '⏹️ Stop',
+    settingsToggleBtn_title: 'Einstellungen',
+    editorToggleBtn_title: 'Song-Editor',
+    rainbowToggle_title: 'Zufälliger Regenbogen-Modus',
+    multiInstrumentRow_title: 'Eine Stimme je erkanntem MIDI-Kanal',
+    transposeRow_title: 'Noten außerhalb der Klavierreichweite automatisch transponieren',
+    pianoScrollLeft_title: 'Nach links',
+    pianoScrollRight_title: 'Nach rechts',
+    footnoteText: 'Setz dich in Minecraft auf den Stuhl vor dem Klavier — die Verbindung wird automatisch hergestellt. Steht hier <b>„Nicht verbunden"</b>, bist du (noch) nicht autorisiert.'
+  },
+  en: {
+    titleText: '🎹 Piano Player',
+    subText: 'piano.laby.net · local client',
+    instrumentLabel: 'Instrument',
+    multiInstrumentLabel: 'Use multiple instruments',
+    settingsTitleText: '⚙️ Settings',
+    particlesLabel: '🎨 Floating note particles',
+    loopLabel: '🔁 Loop — repeat the song',
+    loadingLabel: '⏳ Loading indicator',
+    lightThemeLabel: '☀️ Light theme',
+    transposeLabel: 'Auto-transpose',
+    dropzoneMain: 'Drag & drop a MIDI file here, or click',
+    pianoLabel: '🎹 Piano (click/drag/keyboard QWERTY+ZXCV to play)',
+    midiFindTitleText: '🔍 Find songs on BitMidi',
+    bitmidiQuery_placeholder: 'e.g. Bohemian Rhapsody',
+    bitmidiSearchBtn: 'Search',
+    bitmidiUrl_placeholder: 'Paste download link here',
+    bitmidiLoadBtn: 'Load',
+    bitmidiHintText: 'Results appear right here, ready to click. You can also paste a direct download link below instead.',
+    libraryTitleText: '📚 Song library',
+    editorTitleText: '✏️ Song Editor',
+    editorHintText: 'Click into a row to set notes — each of the 10 rows has its own instrument and pitch, all play together.',
+    speedLabelText: 'Speed',
+    editorTempoLabelText: 'Tempo',
+    playBtn: '▶️ Play',
+    stopBtn: '⏹️ Stop',
+    editorPlayBtn: '▶️ Play',
+    editorStopBtn: '⏹️ Stop',
+    settingsToggleBtn_title: 'Settings',
+    editorToggleBtn_title: 'Song Editor',
+    rainbowToggle_title: 'Random Rainbow Mode',
+    multiInstrumentRow_title: 'One voice per detected MIDI channel',
+    transposeRow_title: 'Automatically transpose notes outside the piano range',
+    pianoScrollLeft_title: 'Left',
+    pianoScrollRight_title: 'Right',
+    footnoteText: 'Sit on the chair in front of the piano in Minecraft — the connection is established automatically. If it shows <b>"Not connected"</b>, you are not (yet) authorized.'
+  }
+};
+
+function applyLanguage(lang){
+  currentLang = lang;
+  const dict = I18N[lang];
+  Object.keys(dict).forEach(id => {
+    if (id.endsWith('_placeholder')){
+      const el = document.getElementById(id.replace('_placeholder', ''));
+      if (el) el.placeholder = dict[id];
+      return;
+    }
+    if (id.endsWith('_title')){
+      const el = document.querySelector(`[data-i18n-title="${id}"]`);
+      if (el) el.title = dict[id];
+      return;
+    }
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (id === 'footnoteText') el.innerHTML = dict[id];
+    else el.textContent = dict[id];
+  });
+  statusText.textContent = STATUS_TEXT[lang][currentStatusKey];
+  document.getElementById('langToggleBtn').textContent = lang === 'de' ? '🇩🇪 DE' : '🇬🇧 EN';
+  playBtn.textContent = playBtnLabel(isPlaying);
+}
+
+document.getElementById('langToggleBtn').addEventListener('click', () => {
+  applyLanguage(currentLang === 'de' ? 'en' : 'de');
+});
+
+// ---------- Virtuelles Klavier ----------
+const PIANO_DISPLAY_MIN = 21;  // A0 — Anfang eines echten 88-Tasten-Klaviers
+const PIANO_DISPLAY_MAX = 108; // C8 — Ende eines echten 88-Tasten-Klaviers
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const BLACK_KEY_OFFSETS = [1,3,6,8,10];
+const KEY_WIDTH = 36;       // feste, griffige Tastenbreite in px (statt gestaucht)
+const BLACK_KEY_WIDTH = 22;
+
+let virtualPianoKeys = {};
+let pianoDragging = false;
+let pianoLastNote = null;
+
+function noteNameOf(midi){
+  const octave = Math.floor(midi / 12) - 1;
+  return NOTE_NAMES[midi % 12] + octave;
+}
+
+function highlightKey(note){
+  const key = virtualPianoKeys[note];
+  if (!key) return;
+  key.classList.add('active');
+  clearTimeout(key._activeTimeout);
+  key._activeTimeout = setTimeout(() => key.classList.remove('active'), 180);
+}
+
+function createVirtualPiano(){
+  const container = document.getElementById('virtualPiano'); // scrollbarer Wrapper
+  container.innerHTML = '';
+  virtualPianoKeys = {};
+
+  const notes = [];
+  for (let m = PIANO_DISPLAY_MIN; m <= PIANO_DISPLAY_MAX; m++){
+    notes.push({ midi: m, isBlack: BLACK_KEY_OFFSETS.includes(m % 12) });
+  }
+  const whiteNotes = notes.filter(n => !n.isBlack);
+  const blackNotes = notes.filter(n => n.isBlack);
+
+  const pianoContainer = document.createElement('div');
+  pianoContainer.className = 'piano-keys-container';
+  pianoContainer.style.width = (whiteNotes.length * KEY_WIDTH) + 'px';
+  const whiteContainer = document.createElement('div');
+  whiteContainer.className = 'white-keys-container';
+  const blackContainer = document.createElement('div');
+  blackContainer.className = 'black-keys-container';
+  blackContainer.style.width = (whiteNotes.length * KEY_WIDTH) + 'px';
+  pianoContainer.appendChild(whiteContainer);
+  pianoContainer.appendChild(blackContainer);
+  container.appendChild(pianoContainer);
+
+  whiteNotes.forEach(n => {
+    const key = document.createElement('div');
+    key.className = 'piano-key white';
+    key.dataset.note = n.midi;
+    key.style.width = KEY_WIDTH + 'px';
+    // Nur an den C-Tasten beschriften — wie Orientierungspunkte auf einem echten Klavier
+    if (n.midi % 12 === 0){
+      const label = document.createElement('div');
+      label.className = 'piano-key-label';
+      label.textContent = noteNameOf(n.midi);
+      key.appendChild(label);
+    }
+    setupPianoKeyEvents(key, n.midi);
+    whiteContainer.appendChild(key);
+    virtualPianoKeys[n.midi] = key;
+  });
+
+  blackNotes.forEach(n => {
+    const idxBefore = whiteNotes.findIndex(w => w.midi > n.midi) - 1;
+    if (idxBefore < 0) return;
+    const key = document.createElement('div');
+    key.className = 'piano-key black';
+    key.dataset.note = n.midi;
+    key.style.width = BLACK_KEY_WIDTH + 'px';
+    key.style.left = ((idxBefore + 1) * KEY_WIDTH - BLACK_KEY_WIDTH / 2) + 'px';
+    setupPianoKeyEvents(key, n.midi);
+    blackContainer.appendChild(key);
+    virtualPianoKeys[n.midi] = key;
+  });
+
+  // Direkt auf den in Minecraft spielbaren Bereich scrollen, statt bei A0 zu starten
+  const centerNote = Math.round((MC_MIN_NOTE + MC_MAX_NOTE) / 2);
+  const centerKey = virtualPianoKeys[centerNote];
+  if (centerKey){
+    container.scrollLeft = Math.max(0, centerKey.offsetLeft - container.clientWidth / 2 + KEY_WIDTH / 2);
+  }
+}
+
+// Spielt eine Klaviertaste: Noten außerhalb der Minecraft-Reichweite werden automatisch
+// in den spielbaren Bereich transponiert (wie beim MIDI-Abspielen), die gedrückte Taste
+// selbst leuchtet trotzdem auf. Ohne Minecraft-Verbindung läuft das als stille Vorschau —
+// man sieht/spielt alles, hört nur eben nichts in Minecraft.
+function playPianoKey(note){
+  spawnNoteParticle(note);
+  highlightKey(note);
+
+  if (!authorized || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+  const playableNote = (note < MC_MIN_NOTE || note > MC_MAX_NOTE) ? transposeToRange(note) : note;
+  const instrument = instrumentSelect.value || 'harp';
+  ws.send(JSON.stringify({type:'note', instrument, note: playableNote, velocity: 100}));
+}
+
+function setupPianoKeyEvents(key, note){
+  const press = () => {
+    pianoDragging = true;
+    pianoLastNote = note;
+    playPianoKey(note);
+  };
+
+  key.addEventListener('mousedown', (e) => { e.preventDefault(); press(); });
+  key.addEventListener('mouseenter', () => {
+    if (pianoDragging && pianoLastNote !== note){
+      pianoLastNote = note;
+      playPianoKey(note);
+    }
+  });
+  key.addEventListener('touchstart', (e) => { e.preventDefault(); press(); });
+  key.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!pianoDragging) return;
+    const t = e.touches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (el && el.classList.contains('piano-key')){
+      const n = parseInt(el.dataset.note, 10);
+      if (n && pianoLastNote !== n){
+        pianoLastNote = n;
+        playPianoKey(n);
+      }
+    }
+  });
+}
+
+document.addEventListener('mouseup', () => { pianoDragging = false; pianoLastNote = null; });
+document.addEventListener('touchend', () => { pianoDragging = false; pianoLastNote = null; });
+
+// ---------- Computer-Tastatur zum Spielen ----------
+// Zwei Reihen, ~2 Oktaven um den Minecraft-Bereich herum (untere Reihe tiefer, obere Reihe höher)
+const KEYBOARD_TO_MIDI = {
+  // Untere Reihe (ZXCVBNM,.-) — tiefere Oktave, weiße Tasten
+  'z': 48, 'x': 50, 'c': 52, 'v': 53, 'b': 55, 'n': 57, 'm': 59, ',': 60, '.': 62, '-': 64,
+  // Untere Reihe Obertasten (ASDFGHJKL) — dazugehörige schwarze Tasten
+  'a': 49, 's': 51, 'd': 54, 'f': 56, 'g': 58, 'h': 61, 'j': 63, 'k': 65, 'l': 66,
+  // Obere Reihe (QWERTYUIOP) — höhere Oktave, weiße Tasten
+  'q': 60, 'w': 62, 'e': 64, 'r': 65, 't': 67, 'y': 69, 'u': 71, 'i': 72, 'o': 74, 'p': 76,
+  // Obere Reihe Obertasten (1234567890) — dazugehörige schwarze Tasten
+  '1': 61, '2': 63, '4': 66, '5': 68, '6': 70, '8': 73, '9': 75
+};
+const keyboardPressed = new Set();
+
+document.addEventListener('keydown', (e) => {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
+
+  const key = e.key.toLowerCase();
+  const note = KEYBOARD_TO_MIDI[key];
+  if (note === undefined) return;
+  e.preventDefault();
+  if (keyboardPressed.has(key)) return; // Tastatur-Wiederholung beim Gedrückthalten ignorieren
+  keyboardPressed.add(key);
+  playPianoKey(note);
+});
+
+document.addEventListener('keyup', (e) => {
+  keyboardPressed.delete(e.key.toLowerCase());
+});
+
+createVirtualPiano();
+
+// ---------- Song-Editor (Step-Sequencer, bis zu 10 eigene Reihen) ----------
+const EDITOR_STEPS = 50;
+const EDITOR_NOTE_MIN = 48; // C3
+const EDITOR_NOTE_MAX = 84; // C6
+
+let editorTracks = [];
+let editorNextId = 1;
+let editorPlaying = false;
+let editorStepIndex = 0;
+let editorTimer = null;
+
+const instrumentOptionsHTML = document.getElementById('instrumentSelect').innerHTML;
+
+function buildNoteOptionsHTML(selectedNote){
+  let html = '';
+  for (let n = EDITOR_NOTE_MIN; n <= EDITOR_NOTE_MAX; n++){
+    html += `<option value="${n}"${n === selectedNote ? ' selected' : ''}>${noteNameOf(n)}</option>`;
+  }
+  return html;
+}
+
+// Eigener Farbton pro Instrument fürs Editor-Raster — dreht den Farbton der eigenen Textur (~200° Blau als Basis)
+const INSTRUMENT_HUE_ROTATE = {
+  harp:            -155,
+  banjo:           -170,
+  bass_attack:       72,
+  bass:              23,
+  bass_drum:        160,
+  bell:             -32,
+  bit:             -121,
+  cow_bell:         133,
+  didgeridoo:      -172,
+  flute:              0,
+  guitar:          -160,
+  hat:              160,
+  ice_chime:        -13,
+  iron_xylophone:   160,
+  pling:             67,
+  snare:            160,
+  xylobone:         -73
+};
+
+function applyTrackColor(trackEl, instrument){
+  const rotate = INSTRUMENT_HUE_ROTATE[instrument] ?? 0;
+  trackEl.style.setProperty('--cell-hue-rotate', rotate + 'deg');
+}
+
+const EDITOR_DEFAULT_NOTES = [72, 71, 69, 67, 65, 64, 62, 60, 59, 57]; // absteigende Tonleiter für die 10 Standard-Reihen
+
+function addEditorTrack(){
+  if (editorTracks.length >= 10) return;
+  const defaultNote = EDITOR_DEFAULT_NOTES[editorTracks.length] ?? 60;
+  editorTracks.push({
+    id: editorNextId++,
+    instrument: 'harp',
+    note: defaultNote,
+    steps: new Array(EDITOR_STEPS).fill(false)
+  });
+  renderEditorTracks();
+}
+
+function renderEditorTracks(){
+  const container = document.getElementById('editorTracks');
+  container.innerHTML = '';
+
+  editorTracks.forEach(track => {
+    const trackEl = document.createElement('div');
+    trackEl.className = 'editor-track';
+    applyTrackColor(trackEl, track.instrument);
+
+    const head = document.createElement('div');
+    head.className = 'editor-track-head';
+
+    const instrumentSelectEl = document.createElement('select');
+    instrumentSelectEl.className = 'editor-instrument-select';
+    instrumentSelectEl.innerHTML = instrumentOptionsHTML;
+    instrumentSelectEl.value = track.instrument;
+    instrumentSelectEl.addEventListener('change', () => {
+      track.instrument = instrumentSelectEl.value;
+      applyTrackColor(trackEl, track.instrument);
+    });
+
+    const noteSelectEl = document.createElement('select');
+    noteSelectEl.className = 'editor-note-select';
+    noteSelectEl.innerHTML = buildNoteOptionsHTML(track.note);
+    noteSelectEl.addEventListener('change', () => {
+      track.note = parseInt(noteSelectEl.value, 10);
+    });
+
+    head.appendChild(instrumentSelectEl);
+    head.appendChild(noteSelectEl);
+
+    const grid = document.createElement('div');
+    grid.className = 'editor-grid';
+
+    const row = document.createElement('div');
+    row.className = 'editor-grid-row';
+    for (let step = 0; step < EDITOR_STEPS; step++){
+      const cell = document.createElement('div');
+      cell.className = 'editor-cell' + (step % 10 === 0 ? ' beat-start' : '');
+      cell.dataset.step = step;
+      if (track.steps[step]) cell.classList.add('on');
+      cell.addEventListener('click', () => {
+        track.steps[step] = !track.steps[step];
+        cell.classList.toggle('on', track.steps[step]);
+      });
+      row.appendChild(cell);
+    }
+    grid.appendChild(row);
+
+    trackEl.appendChild(head);
+    trackEl.appendChild(grid);
+    container.appendChild(trackEl);
+  });
+}
+
+function playEditorStep(step){
+  editorTracks.forEach(track => {
+    if (track.steps[step]){
+      sendNote(track.note, 100, track.instrument);
+    }
+  });
+}
+
+function highlightEditorStep(step){
+  document.querySelectorAll('.editor-cell.step-active').forEach(el => el.classList.remove('step-active'));
+  document.querySelectorAll(`.editor-cell[data-step="${step}"]`).forEach(el => el.classList.add('step-active'));
+}
+
+function scheduleEditorStep(){
+  playEditorStep(editorStepIndex);
+  highlightEditorStep(editorStepIndex);
+  const bpm = parseInt(document.getElementById('editorTempo').value, 10);
+  const stepMs = (60000 / bpm) / 4; // 16tel-Noten
+  editorTimer = setTimeout(() => {
+    editorStepIndex = (editorStepIndex + 1) % EDITOR_STEPS;
+    if (editorPlaying) scheduleEditorStep();
+  }, stepMs);
+}
+
+function startEditorPlayback(){
+  if (editorTracks.length === 0 || editorPlaying) return;
+  editorPlaying = true;
+  editorStepIndex = 0;
+  scheduleEditorStep();
+}
+
+function stopEditorPlayback(){
+  editorPlaying = false;
+  clearTimeout(editorTimer);
+  document.querySelectorAll('.editor-cell.step-active').forEach(el => el.classList.remove('step-active'));
+}
+
+// ---------- Editor-Steuerung ----------
+document.getElementById('editorToggleBtn').addEventListener('click', () => {
+  while (editorTracks.length < 10) addEditorTrack();
+  document.getElementById('editorOverlay').style.display = 'flex';
+});
+document.getElementById('editorCloseBtn').addEventListener('click', () => {
+  stopEditorPlayback();
+  document.getElementById('editorOverlay').style.display = 'none';
+});
+document.getElementById('editorOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'editorOverlay'){
+    stopEditorPlayback();
+    document.getElementById('editorOverlay').style.display = 'none';
+  }
+});
+document.getElementById('editorPlayBtn').addEventListener('click', startEditorPlayback);
+document.getElementById('editorStopBtn').addEventListener('click', stopEditorPlayback);
+document.getElementById('editorTempo').addEventListener('input', (e) => {
+  document.getElementById('editorTempoVal').textContent = e.target.value + ' BPM';
+});
+
+// Scroll-Pfeile (springen um eine Oktave) + Mausrad horizontal nutzbar machen
+const pianoScrollEl = document.getElementById('virtualPiano');
+document.getElementById('pianoScrollLeft').addEventListener('click', () => {
+  pianoScrollEl.scrollBy({ left: -7 * KEY_WIDTH, behavior: 'smooth' });
+});
+document.getElementById('pianoScrollRight').addEventListener('click', () => {
+  pianoScrollEl.scrollBy({ left: 7 * KEY_WIDTH, behavior: 'smooth' });
+});
+pianoScrollEl.addEventListener('wheel', (e) => {
+  if (Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+    pianoScrollEl.scrollLeft += e.deltaY;
+    e.preventDefault();
+  }
+}, { passive: false });
+</script>
+</body>
+</html>
